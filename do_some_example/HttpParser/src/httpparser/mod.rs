@@ -1,4 +1,4 @@
-use std::{collections::HashMap};
+use std::collections::HashMap;
 pub struct HttpParser {
     pub k_v: HashMap<String, String>,
     pub body: String,
