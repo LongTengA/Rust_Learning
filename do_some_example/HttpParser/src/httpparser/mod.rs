@@ -24,21 +24,20 @@ impl HttpParser {
             match part {
                 ReqParts::StartLine => {
                     part = ReqParts::Headers;
-                    match i.find("HTTP") {
-                        Some(pos) => {
-                            if pos == 0 {
-                                let key_words = ["Version", "Status-Code", "Status"].iter();
-                                for (k, v) in key_words.zip(i.split_ascii_whitespace()) {
-                                    parser.k_v.insert(k.to_string(), v.to_string());
-                                }
-                            } else {
-                                let key_words = ["Method", "Path", "Version"].iter();
-                                for (k, v) in key_words.zip(i.split_ascii_whitespace()) {
-                                    parser.k_v.insert(k.to_string(), v.to_string());
-                                }
+                    if let Some(pos) = i.find("HTTP") {
+                        if pos == 0 {
+                            let key_words = ["Version", "Status-Code", "Status"].iter();
+                            for (k, v) in key_words.zip(i.split_ascii_whitespace()) {
+                                parser.k_v.insert(k.to_string(), v.to_string());
+                            }
+                        } else {
+                            let key_words = ["Method", "Path", "Version"].iter();
+                            for (k, v) in key_words.zip(i.split_ascii_whitespace()) {
+                                parser.k_v.insert(k.to_string(), v.to_string());
                             }
                         }
-                        None => return Err(ParserErrorKind::BadHttpFormat),
+                    } else {
+                        return Err(ParserErrorKind::BadHttpFormat)
                     }
                 }
                 ReqParts::Headers => {
