@@ -1,20 +1,41 @@
 use std::collections::HashMap;
-pub struct HttpParser {
-    pub k_v: HashMap<String, String>,
-    pub body: String,
-}
 enum ReqParts {
     StartLine,
     Headers,
     Body,
 }
-#[derive(Debug)]
 pub enum ParserErrorKind {
-    BadHttpFormat,
+    BadHttpFormat(_HttpParser),
 }
-impl HttpParser {
-    pub fn new(request: &str) -> Result<HttpParser, ParserErrorKind> {
-        let mut parser: HttpParser = HttpParser {
+
+impl ParserErrorKind {
+    pub fn get(self) -> _HttpParser {
+        match self {
+            ParserErrorKind::BadHttpFormat(e) => e,
+        }
+    }
+}
+
+trait Parser {
+    fn null_parser() -> _HttpParser;
+}
+pub struct _HttpParser {
+    pub k_v: HashMap<String, String>,
+    pub body: String,
+}
+
+impl Parser for _HttpParser {
+    fn null_parser() -> _HttpParser {
+        _HttpParser {
+            k_v: HashMap::new(),
+            body: String::new(),
+        }
+    }
+}
+
+impl _HttpParser {
+    pub fn new(request: &str) -> Result<_HttpParser, ParserErrorKind> {
+        let mut parser: _HttpParser = _HttpParser {
             k_v: HashMap::new(),
             body: String::new(),
         };
@@ -37,7 +58,7 @@ impl HttpParser {
                             }
                         }
                     } else {
-                        return Err(ParserErrorKind::BadHttpFormat)
+                        return Err(ParserErrorKind::BadHttpFormat(_HttpParser::null_parser()));
                     }
                 }
                 ReqParts::Headers => {
@@ -73,5 +94,58 @@ impl HttpParser {
 
     pub fn find(&self, key: &str) -> Option<&String> {
         self.k_v.get(key)
+    }
+}
+
+pub struct HttpParser<'a> {
+    pub header: HashMap<&'a str, &'a str>,
+    pub body: &'a str,
+}
+
+impl<'a> HttpParser<'a> {
+    pub fn new(request: &'a str) -> Result<Self, ParserErrorKind> {
+        let mut parser = Self::null_parser();
+        let mut part = ReqParts::StartLine;
+        for lines in request.lines() {
+            match part {
+                ReqParts::StartLine => {
+                    if let Some(pos) = lines.find("HTTP") {
+                        if pos == 0 {
+                            let key_words = ["Version", "Status-Code", "Status"].iter();
+                            for (k, v) in key_words.zip(lines.split_ascii_whitespace()) {
+                                parser.header.insert(k, v);
+                            }
+                        } else {
+                            let key_words = ["Method", "Path", "Version"].iter();
+                            for (k, v) in key_words.zip(lines.split_ascii_whitespace()) {
+                                parser.header.insert(k, v);
+                            }
+                        }
+                    } else {
+                        return Err(ParserErrorKind::BadHttpFormat(_HttpParser::null_parser()));
+                    }
+                    part = ReqParts::Headers;
+                }
+                ReqParts::Headers => {
+                    match lines.find(":") {
+                        Some(pos) => {
+                            parser.header.insert(&lines[..pos], &lines[pos + 2..]);
+                        }
+                        None => part = ReqParts::Body,
+                    };
+                }
+                ReqParts::Body => unsafe {
+                    
+                },
+            }
+        }
+        Ok(parser)
+    }
+
+    pub fn null_parser() -> Self {
+        HttpParser {
+            header: HashMap::new(),
+            body: "",
+        }
     }
 }

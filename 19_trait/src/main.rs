@@ -15,14 +15,25 @@ fn main() {
         content: "Read te artice I will tell you about the truth".to_string(),
     };
 
-    println!("{}", day1.summarize());
+    let day2 = TweetArtice {
+        headline: "todo!()".to_string(),
+        location: "todoasdasdasdasdasdasdasdas".to_string(),
+        reply: true,
+        retweet: true,
+    };
+
+    notifiy(&day2, &day1);
 }
 
 /// .
-fn lagrest(number: &[i32]) -> i32 {
-    let mut lagest = number[0];
-    for &i in number {
-        if i > lagest {
+fn lagrest<T>(number: &[T]) -> &T
+where
+    T: PartialOrd,
+    T: Clone,
+{
+    let mut lagest = &number[0];
+    for i in number.iter() {
+        if i > &lagest {
             lagest = i;
         }
     }
@@ -69,3 +80,8 @@ impl Summary for NewsArtice {
         format!("{}\n    {}", self.headline, self.content)
     }
 }
+
+fn notifiy<T: Summary, U: Summary>(item1: &T, item2: &U) {
+    println!("{}\n{}", item1.summarize(), item2.summarize());
+}
+
